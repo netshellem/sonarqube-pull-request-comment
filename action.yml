@@ -1,0 +1,88 @@
+name: "SonarQube Pull Request Comment"
+description: 'Add Comment on pull request with the Quality Gate check'
+author: 'ibex-code'
+branding:
+  icon: 'git-pull-request'
+  color: 'blue'
+
+inputs:
+  sonar_host_url:
+    description: "SonarQube Url"
+    required: true
+  sonar_token:
+    description: "SonarQube Token Project"
+    required: true
+  sonar_project_key:
+    description: "SonarQube Name Project"
+    required: false
+  github_token:
+    description: "GitHub Token"
+    required: true
+      
+runs:
+  using: "composite"
+  steps:
+    - name: Pull Request Comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{inputs.github_token}}
+        script: |
+          const https = require('https');
+
+          // Get inputs action
+          //
+          const inputs = ${{ toJSON(inputs) }};
+          const sonar_host_url = inputs.sonar_host_url;
+          const sonar_token = inputs.sonar_token;
+          const sonar_project_key = inputs.sonar_project_key != "" ? inputs.sonar_project_key : context.payload.repository.name;
+ 
+          // Get Sonar Quality Gate 
+          // 
+          let https_options = {
+              headers: {
+                  'Authorization': 'Basic ' + Buffer.from(sonar_token + ':').toString('base64')
+              }
+          };
+          https.get(`${sonar_host_url}/api/qualitygates/project_status?projectKey=${sonar_project_key}`, https_options, (response) => {
+              let data = '';
+              response.on('data', (chunk) => {
+                  data += chunk;
+              });
+              response.on('end', () => {
+                  if (data == '') {
+                      core.setFailed('Sonar Quality Gate is not responding, check your settings : sonar_host_url, sonar_token');
+                  }
+
+                  data = JSON.parse(data);
+                  if (Object.keys(data).includes('errors')) {
+                    core.setFailed(data.errors[0].msg + ': fix your settings: sonar_project_key');
+                  }
+                  build_comment(data);
+              });
+
+          }).on("error", (err) => {
+              core.setFailed(err.message);
+          });
+
+
+          // Build comment
+          //
+          function build_comment(data) {
+              let markdownOutput = (data.projectStatus.status == "OK") ? `## [✅](${sonar_host_url}/dashboard?id=${sonar_project_key}) Quality Gate Passed \n` : `## [❌](${sonar_host_url}/dashboard?id=${sonar_project_key}) Quality Gate Failed \n`;
+              data.projectStatus.conditions.forEach(function (condition, index, array) {
+                  let status = condition.status === "OK" ? '✅' : '❌';
+                  markdownOutput += `${status} ${condition.metricKey.replace('new_', '').replace('_rating', '').replace('_', ' ')}\\\n`;
+                  if (index == array.length - 1) {
+                      markdownOutput = markdownOutput.slice(0, -2);
+                      markdownOutput += `\n\n`;
+                  }
+              });
+              markdownOutput += `[See analysis details on SonarQube](${sonar_host_url}/dashboard?id=${sonar_project_key})`;
+
+              github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: markdownOutput
+              })
+          }
