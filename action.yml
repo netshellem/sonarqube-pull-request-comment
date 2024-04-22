@@ -71,7 +71,7 @@ runs:
               let markdownOutput = (data.projectStatus.status == "OK") ? `## [✅](${sonar_host_url}/dashboard?id=${sonar_project_key}) Quality Gate Passed \n` : `## [❌](${sonar_host_url}/dashboard?id=${sonar_project_key}) Quality Gate Failed \n`;
               data.projectStatus.conditions.forEach(function (condition, index, array) {
                   let status = condition.status === "OK" ? '✅' : '❌';
-                  markdownOutput += `${status} ${condition.metricKey.replace('new_', '').replace('_rating', '').replace('_', ' ')}\\\n`;
+                  markdownOutput += `${status} ${condition.metricKey.replaceAll('_', ' ')}\\\n`;
                   if (index == array.length - 1) {
                       markdownOutput = markdownOutput.slice(0, -2);
                       markdownOutput += `\n\n`;
