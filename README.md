@@ -27,10 +27,22 @@ on:
       - master
   pull_request:
       types: [opened, synchronize, reopened]
+
+# Global permission here all other scopes will have access. 
+# OR use Job permission, that will only apply to the job the permission is set on.
+permissions:
+  pull-requests: write
+
 name: Main Workflow
 jobs:
   sonarqube:
     runs-on: ubuntu-latest
+
+    # Job permission, that will only apply to the job named "sonarqube". 
+    # Write access is granted for the pull-requests scopes. All other scopes will have no access.
+    permissions:
+      pull-requests: write
+
     steps:
     - uses: actions/checkout@v3
       with:
