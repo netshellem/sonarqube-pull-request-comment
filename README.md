@@ -63,7 +63,7 @@ jobs:
     # ----------------------------------------------------------------------------------
 
     - name: SonarQube Comment
-      if: always() && github.event.action == 'pull_request'
+      if: always() && github.event_name == 'pull_request'
       uses: ibex-code/sonarqube-pull-request-comment@v1
       with:
         sonar_token: ${{ secrets.SONAR_TOKEN }}
