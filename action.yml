@@ -47,7 +47,7 @@ runs:
                   'Authorization': 'Basic ' + Buffer.from(sonar_token + ':').toString('base64')
               }
           };
-          https.get(`${sonar_host_url}/api/qualitygates/project_status?projectKey=${sonar_project_key}`, https_options, (response) => {
+          https.get(`${sonar_host_url}/api/qualitygates/project_status?projectKey=${sonar_project_key}&pullRequest=${pr_number}`, https_options, (response) => {
               let data = '';
               response.on('data', (chunk) => {
                   data += chunk;
