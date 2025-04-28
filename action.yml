@@ -18,6 +18,9 @@ inputs:
   github_token:
     description: "GitHub Token"
     required: true
+  github_pr_number:
+    description: "Pull Request Number"
+    required: false  
       
 runs:
   using: "composite"
@@ -35,6 +38,7 @@ runs:
           const sonar_host_url = inputs.sonar_host_url;
           const sonar_token = inputs.sonar_token;
           const sonar_project_key = inputs.sonar_project_key != "" ? inputs.sonar_project_key : context.payload.repository.name;
+          const pr_number = inputs.github_pr_number
  
           // Get Sonar Quality Gate 
           // 
@@ -68,7 +72,7 @@ runs:
           // Build comment
           //
           function build_comment(data) {
-              let markdownOutput = (data.projectStatus.status == "OK") ? `## [✅](${sonar_host_url}/dashboard?id=${sonar_project_key}) Quality Gate Passed \n` : `## [❌](${sonar_host_url}/dashboard?id=${sonar_project_key}) Quality Gate Failed \n`;
+              let markdownOutput = (data.projectStatus.status == "OK") ? `## [✅](${sonar_host_url}/dashboard?id=${sonar_project_key}&pullRequest=${pr_number}) Quality Gate Passed \n` : `## [❌](${sonar_host_url}/dashboard?id=${sonar_project_key}) Quality Gate Failed \n`;
               data.projectStatus.conditions.forEach(function (condition, index, array) {
                   let status = condition.status === "OK" ? '✅' : '❌';
                   markdownOutput += `${status} ${condition.metricKey.replace('new_', '').replaceAll('_', ' ')}\\\n`;
@@ -77,7 +81,7 @@ runs:
                       markdownOutput += `\n\n`;
                   }
               });
-              markdownOutput += `[See analysis details on SonarQube](${sonar_host_url}/dashboard?id=${sonar_project_key})`;
+              markdownOutput += `[See analysis details on SonarQube](${sonar_host_url}/dashboard?id=${sonar_project_key}&pullRequest=${pr_number})`;
 
               github.rest.issues.createComment({
                   issue_number: context.issue.number,
